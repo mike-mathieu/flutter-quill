@@ -158,6 +158,7 @@ class QuillToolbarSearchDialogState extends State<QuillToolbarSearchDialog> {
               textInputAction: TextInputAction.done,
               keyboardType: TextInputType.text,
               controller: _textController,
+              onSubmitted: (value) => _moveToNext(),
             ),
           ),
           IconButton(
