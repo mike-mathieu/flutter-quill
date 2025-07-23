@@ -64,6 +64,7 @@ class QuillToolbarSearchDialog extends StatefulWidget {
 
 class QuillToolbarSearchDialogState extends State<QuillToolbarSearchDialog> {
   final TextEditingController _textController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   late String _text;
   List<int> _offsets = [];
   int _index = 0;
@@ -81,6 +82,7 @@ class QuillToolbarSearchDialogState extends State<QuillToolbarSearchDialog> {
   @override
   void dispose() {
     _textController.dispose();
+    _searchFocusNode.dispose();
     _searchTimer?.cancel();
     super.dispose();
   }
@@ -154,6 +156,7 @@ class QuillToolbarSearchDialogState extends State<QuillToolbarSearchDialog> {
                 suffixStyle: widget.dialogTheme?.labelTextStyle,
               ),
               autofocus: true,
+              focusNode: _searchFocusNode,
               onChanged: _textChanged,
               textInputAction: TextInputAction.done,
               keyboardType: TextInputType.text,
@@ -271,6 +274,12 @@ class QuillToolbarSearchDialogState extends State<QuillToolbarSearchDialog> {
         _index = 0;
         clearSelection();
       });
+      // Ensure search field maintains focus even when text is empty
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_searchFocusNode.canRequestFocus && !_searchFocusNode.hasFocus) {
+          _searchFocusNode.requestFocus();
+        }
+      });
       return;
     }
     setState(() {
@@ -294,6 +303,29 @@ class QuillToolbarSearchDialogState extends State<QuillToolbarSearchDialog> {
         _moveToPosition();
       }
     });
+
+    // Ensure search field maintains focus and cursor position after search operation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_searchFocusNode.canRequestFocus && !_searchFocusNode.hasFocus) {
+        // Store current cursor position before refocusing
+        final currentSelection = _textController.selection;
+        _searchFocusNode.requestFocus();
+        // Restore cursor position after focus
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // Ensure the selection is valid for the current text length
+          final textLength = _textController.text.length;
+          if (currentSelection.isValid &&
+              currentSelection.start <= textLength &&
+              currentSelection.end <= textLength) {
+            _textController.selection = currentSelection;
+          } else {
+            // If the stored selection is invalid, place cursor at end
+            _textController.selection =
+                TextSelection.collapsed(offset: textLength);
+          }
+        });
+      }
+    });
   }
 
   void _moveToPosition() {
@@ -312,6 +344,29 @@ class QuillToolbarSearchDialogState extends State<QuillToolbarSearchDialog> {
       ),
       ChangeSource.local,
     );
+
+    // Ensure search field maintains focus and cursor position
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_searchFocusNode.canRequestFocus && !_searchFocusNode.hasFocus) {
+        // Store current cursor position before refocusing
+        final currentSelection = _textController.selection;
+        _searchFocusNode.requestFocus();
+        // Restore cursor position after focus
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // Ensure the selection is valid for the current text length
+          final textLength = _textController.text.length;
+          if (currentSelection.isValid &&
+              currentSelection.start <= textLength &&
+              currentSelection.end <= textLength) {
+            _textController.selection = currentSelection;
+          } else {
+            // If the stored selection is invalid, place cursor at end
+            _textController.selection =
+                TextSelection.collapsed(offset: textLength);
+          }
+        });
+      }
+    });
   }
 
   void _moveToPrevious() {
